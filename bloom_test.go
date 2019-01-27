@@ -21,6 +21,7 @@ func TestBloomSetMember(t *testing.T) {
 	BloomSetMember(NewBloom(20, 5), 10, t)
 	BloomSetMember(NewBloom(200, 7), 500, t)
 	BloomSetMember(NewBloom(200, 7), 10000, t)
+	t.SkipNow()
 	BloomSetMember(NewBloom(2000, 20), 100000, t)
 }
 
