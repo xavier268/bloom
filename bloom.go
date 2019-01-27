@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"math"
+	"math/rand"
 )
 
 // Bloom is the bloom filter object
@@ -54,20 +55,18 @@ func (b *Bloom) FalsePositiveProbability(n uint64) (r float64) {
 	return r
 }
 
-// FalsePositiveProbabilityEstimates simulates the FalsePositive proba on a sample
-func (b *Bloom) FalsePositiveProbabilityEstimates(n uint64) float64 {
-	bb := NewBloom(b.n, b.k)
+// FalsePositiveProbabilityEstimates simulates the FalsePositive proba
+// on a sample of random numbers
+func (b *Bloom) FalsePositiveProbabilityEstimates() float64 {
+	bb := b.Clone()
 	col := float64(0)
-	for i := uint64(0); i < n; i++ {
-		bb.Set(i)
-	}
-	for i := n; i < n+100000; i++ {
-		if bb.Member(i) {
+	rand.Seed(42)
+	for i := 0; i < 10000; i++ {
+		if bb.Member(rand.Int63()) {
 			col++
 		}
 	}
-	return col / 100000.
-
+	return col / 10000.
 }
 
 //Dump prints the internal structure of the filter
@@ -78,6 +77,13 @@ func (b *Bloom) Dump() {
 		fmt.Printf("\n%d\t%064b", i, r)
 	}
 	fmt.Println()
+}
+
+// Clone an existing bloom filter
+func (b *Bloom) Clone() Bloom {
+	bb := NewBloom(b.n, b.k)
+	copy(bb.bf, b.bf)
+	return bb
 }
 
 // ============= utilities =====================
