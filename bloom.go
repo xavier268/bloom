@@ -1,4 +1,4 @@
-// Package bloom implements a basic bloom filter
+// Package bloom implements a bloom filter in pure go
 package bloom
 
 import (
@@ -15,15 +15,16 @@ type Bloom struct {
 }
 
 // NewBloom provides a new, empty, bloom filter
+// n is the number of 64bits words, k is the number of hash functions
 func NewBloom(n, k uint64) Bloom {
 	return Bloom{n, k, make([]uint64, n)}
 }
 
-// Set a new member, in. Return true if already set
-func (b *Bloom) Set(in interface{}) bool {
+// Set a new member. Return true if already set
+func (b *Bloom) Set(member interface{}) bool {
 	r := true
 	//fmt.Printf("\nSet %v", in)
-	harr := b.hashes(in)
+	harr := b.hashes(member)
 	//fmt.Printf("\nHash=%X", harr[0])
 	for _, hh := range harr {
 		r = r && b.setbit(hh)
@@ -32,26 +33,20 @@ func (b *Bloom) Set(in interface{}) bool {
 	return r
 }
 
-//Member returns true if the 'in' data is (mostlikely) already in the set.
-func (b *Bloom) Member(in interface{}) bool {
+//Member returns true if the member data is (most likely) already in the set.
+// If it returns false, it is garanteed that member was not in the set.
+func (b *Bloom) Member(member interface{}) bool {
 	r := true
-	//fmt.Printf("\nSet %v", in)
-	harr := b.hashes(in)
-	//fmt.Printf("\nHash=%X", harr[0])
+	harr := b.hashes(member)
 	for _, hh := range harr {
 		r = r && b.testbit(hh)
-		//fmt.Printf("\n%d\tbool=%v\t hash = %016X", i, r, hh)
 	}
 	return r
 }
 
-// FalsePositiveCount give the expected max number of false positive for n members
-// Estimates assumes the probability of false positive is low
-func (b *Bloom) FalsePositiveCount(n uint64) uint64 {
-	return uint64(b.FalsePositiveProbability(n) * float64(n))
-}
-
-// FalsePositiveProbability computes the probability of false positive for a given set
+// FalsePositiveProbability computes the probability of false positive for a given set size
+// The formula does not seem to reflect the FalsePositiveProbabilityEstimates
+// which is more precise, although longer to compute.
 func (b *Bloom) FalsePositiveProbability(n uint64) (r float64) {
 	r = 1 - 1/float64(b.n*64)
 	r = 1 - math.Pow(r, float64(n*b.k))
@@ -75,10 +70,8 @@ func (b *Bloom) FalsePositiveProbabilityEstimates(n uint64) float64 {
 
 }
 
-// ============= utilities =====================
-
-//dump prints the internal structure of the filter
-func (b *Bloom) dump() {
+//Dump prints the internal structure of the filter
+func (b *Bloom) Dump() {
 	fmt.Printf("\nNb of registers\t:%v", b.n)
 	fmt.Printf("\nNb of hash func\t:%v", b.k)
 	for i, r := range b.bf {
@@ -86,6 +79,8 @@ func (b *Bloom) dump() {
 	}
 	fmt.Println()
 }
+
+// ============= utilities =====================
 
 // Creates an array with the k hashed values
 func (b *Bloom) hashes(in interface{}) []uint64 {
@@ -95,7 +90,6 @@ func (b *Bloom) hashes(in interface{}) []uint64 {
 		h.Reset()
 		fmt.Fprintf(h, "==%d==%v==", b.k, in)
 		r[i] = h.Sum64()
-		//fmt.Printf("\n%X", r[i])
 	}
 	return r
 }
@@ -120,12 +114,9 @@ func (b *Bloom) testbit(h uint64) bool {
 // Set the bit. Return true is already set.
 func (b *Bloom) setbit(h uint64) bool {
 	block, bit := hash2bits(h, b.n)
-	//fmt.Printf("\nblock = %d, bit = %d", block, bit)
 	var mask uint64 = 1 << bit
-	//fmt.Printf("\nmask = \t%064b", mask)
 	if b.bf[block]&mask == uint64(0) {
 		b.bf[block] |= mask
-		//fmt.Printf("\nbmap = \t%064b", b.bf[block])
 		return false
 	}
 	return true

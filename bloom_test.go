@@ -28,15 +28,15 @@ func BloomSetMember(b Bloom, loops uint64, t *testing.T) {
 	//t.SkipNow()
 	col := uint64(0)
 	fmt.Printf("\nBloom set with %v, %v - running for %v loops", b.n, b.k, loops)
-	fmt.Printf("\nFPProb=%v\nExpected max collisions\t: %v", b.FalsePositiveProbability(loops), b.FalsePositiveCount(loops))
-	fmt.Printf("\nSimulated FP proba\t: %v", b.FalsePositiveProbabilityEstimates(loops))
+	fmt.Printf("\nComputed FP proba\t: %01.5v", b.FalsePositiveProbability(loops))
+	fmt.Printf("\nSimulated FP proba\t: %01.5v", b.FalsePositiveProbabilityEstimates(loops))
 	for i := uint64(0); i < loops; i++ {
 		if b.Set(i) {
 			col++
 		}
 	}
-	// b.dump()
-	fmt.Printf("\nActual collisions     \t: %v\n", col)
+
+	fmt.Printf("\nActual collisions ratio\t: %01.5v\n", float64(col)/float64(loops))
 
 	for i := uint64(0); i < loops; i++ {
 		// Now, we expect all i to be members of the bloom filter ?
@@ -121,7 +121,7 @@ func TestBloomSingleMember(t *testing.T) {
 	}
 
 	if !b.Member(5) {
-		b.dump()
+		b.Dump()
 		block, bit := hash2bits(b.hashes(5)[0], b.n)
 		fmt.Printf("\nBlock=%v, bit=%v should have been set ?! ", block, bit)
 		t.Error()
@@ -130,7 +130,7 @@ func TestBloomSingleMember(t *testing.T) {
 		fmt.Printf("\nBlock=%v, bit=%v is set as expected ", block, bit)
 	}
 	if !b.Set(5) {
-		b.dump()
+		b.Dump()
 		block, bit := hash2bits(b.hashes(5)[0], b.n)
 		fmt.Printf("\nBlock=%v, bit=%v should have been set ?! ", block, bit)
 		t.Error()
@@ -138,5 +138,5 @@ func TestBloomSingleMember(t *testing.T) {
 		block, bit := hash2bits(b.hashes(5)[0], b.n)
 		fmt.Printf("\nBlock=%v, bit=%v is set as expected ", block, bit)
 	}
-	b.dump()
+	b.Dump()
 }
